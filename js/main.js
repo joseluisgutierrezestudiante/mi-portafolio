@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     navLinks.forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
-            const targetId = e.target.getAttribute('href');
+            const targetId = link.getAttribute('href');
             const targetSection = document.querySelector(targetId);
 
             if (!targetSection) return;
@@ -90,6 +90,245 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- Toast notification system ---
+    const toastEl = document.getElementById('toast');
+    let toastTimer = null;
+    const showToast = (message) => {
+        if (!toastEl) return;
+        toastEl.textContent = message;
+        toastEl.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+            toastEl.classList.remove('show');
+        }, 3000);
+    };
+
+    // --- Hero code window tabs & Terminal ---
+    const windowTabs = document.querySelectorAll('.window-tab');
+    const windowLang = document.getElementById('window-lang');
+    windowTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            windowTabs.forEach(t => {
+                t.classList.remove('active');
+                t.setAttribute('aria-selected', 'false');
+            });
+            tab.classList.add('active');
+            tab.setAttribute('aria-selected', 'true');
+
+            const targetTab = tab.dataset.tab;
+            if (windowLang) {
+                if (targetTab === 'profile') windowLang.textContent = 'ES6+';
+                else if (targetTab === 'method') windowLang.textContent = 'MD';
+                else if (targetTab === 'terminal') {
+                    windowLang.textContent = 'BASH';
+                    setTimeout(() => {
+                        const input = document.getElementById('terminal-input');
+                        if (input) input.focus();
+                    }, 50);
+                }
+            }
+
+            document.querySelectorAll('.tab-pane').forEach(pane => {
+                pane.classList.remove('active');
+            });
+            const activePane = document.getElementById(`tab-${targetTab}`);
+            if (activePane) activePane.classList.add('active');
+        });
+    });
+
+    // --- Motor de la Terminal Interactiva ---
+    const terminalForm = document.getElementById('terminal-form');
+    const terminalInput = document.getElementById('terminal-input');
+    const terminalHistory = document.getElementById('terminal-history');
+    const commandHistoryList = [];
+    let historyIndex = -1;
+
+    const printToTerminal = (cmd, outputHtml) => {
+        if (!terminalHistory) return;
+        const entry = document.createElement('div');
+        entry.className = 'terminal-entry';
+        entry.innerHTML = `
+            <div class="term-line-user">
+                <span class="term-user">visitor@joseluis</span><span class="term-dollar">:~$</span>
+                <span class="term-line-cmd">${escapeHtml(cmd)}</span>
+            </div>
+            <div class="term-line-output">${outputHtml}</div>
+        `;
+        terminalHistory.appendChild(entry);
+        terminalHistory.scrollTop = terminalHistory.scrollHeight;
+    };
+
+    const executeCommand = (rawCmd) => {
+        const cmd = rawCmd.trim();
+        if (!cmd) return;
+
+        commandHistoryList.push(cmd);
+        historyIndex = commandHistoryList.length;
+
+        const lower = cmd.toLowerCase();
+        const parts = lower.split(' ').filter(Boolean);
+        const mainCmd = parts[0];
+
+        if (mainCmd === 'clear' || mainCmd === 'cls') {
+            if (terminalHistory) terminalHistory.innerHTML = '';
+            return;
+        }
+
+        if (mainCmd === 'help') {
+            printToTerminal(cmd, `
+<span class="term-highlight">// COMANDOS DISPONIBLES</span>
+  • <span class="term-cmd">skills</span>        : Stack técnico clasificado
+  • <span class="term-cmd">proyectos</span>     : Catálogo de proyectos y demos
+  • <span class="term-cmd">python app.py</span> : Simula el microservicio Flask & SQLite
+  • <span class="term-cmd">contacto</span>      : Canales de contacto directo
+  • <span class="term-cmd">theme &lt;tono&gt;</span>  : Cambia el tono (cobalt, terracotta, olive, graphite)
+  • <span class="term-cmd">whoami</span>        : Contexto de la sesión
+  • <span class="term-cmd">clear</span>         : Limpia la pantalla
+`);
+            return;
+        }
+
+        if (mainCmd === 'skills' || mainCmd === 'stack') {
+            printToTerminal(cmd, `
+<span class="term-highlight">// STACK TÉCNICO</span>
+  [01] Frontend : HTML5 Semántico, CSS3 Flex/Grid, JavaScript (ES6+), React
+  [02] Backend  : Python 3, Flask REST APIs, Node.js
+  [03] Datos    : SQL Relacional, SQLite, Operaciones CRUD, Consultas JOIN
+  [04] Entorno  : Git/GitHub, Linux/Bash, LocalStorage, Clean Code
+`);
+            return;
+        }
+
+        if (mainCmd === 'proyectos' || mainCmd === 'projects') {
+            printToTerminal(cmd, `
+<span class="term-highlight">// PROYECTOS DESTACADOS</span>
+  1. <span class="term-success">Sistema de inventario</span> [Python + Flask + SQLite]
+     Demo: api-mascotas/dashboard.html
+  2. <span class="term-success">Landing que convierte</span> [HTML5 + CSS3 + JS]
+  3. <span class="term-success">Panel de tareas</span> [JavaScript + LocalStorage]
+  
+  Tip: Ejecuta <span class="term-cmd">python app.py</span> para simular el inicio del backend.
+`);
+            return;
+        }
+
+        if (lower === 'python app.py' || lower === 'python' || lower === 'flask run') {
+            printToTerminal(cmd, `
+<span class="term-success">* Iniciando microservicio: api-mascotas</span>
+* Entorno: produccion
+* Base de datos: inventario.db conectada (SQLite 3.x)
+* Modelos relacionales validados: 'productos', 'categorias' [OK]
+* Endpoints REST activos:
+    - GET    /api/productos (200 OK)
+    - GET    /api/productos/stock-bajo (200 OK)
+    - POST   /api/productos (201 Created)
+* Servicio activo en http://127.0.0.1:5000/
+<span class="term-highlight">[OK] API lista para recibir peticiones HTTP.</span>
+`);
+            return;
+        }
+
+        if (mainCmd === 'contacto' || mainCmd === 'contact' || mainCmd === 'email') {
+            printToTerminal(cmd, `
+<span class="term-highlight">// CANALES DIRECTOS</span>
+  [EMAIL]    <a href="mailto:joseluismachado09@gmail.com" class="term-highlight">joseluismachado09@gmail.com</a>
+  [LINKEDIN] <a href="https://www.linkedin.com/in/jose-luis-guti%C3%A9rrez-machado-391619217/" target="_blank" class="term-highlight">Jose Luis Gutierrez Machado</a>
+  [GITHUB]   <a href="https://github.com/joseluisgutierrezestudiante" target="_blank" class="term-highlight">@joseluisgutierrezestudiante</a>
+`);
+            return;
+        }
+
+        if (mainCmd === 'theme') {
+            const chosen = parts[1];
+            const aliases = { blue: 'cobalt', coral: 'terracotta', teal: 'olive', purple: 'cobalt' };
+            const normalized = aliases[chosen] || chosen;
+            if (['cobalt', 'terracotta', 'olive', 'graphite'].includes(normalized)) {
+                applyPalette(normalized);
+                printToTerminal(cmd, `<span class="term-success">✓ Paleta aplicada: ${normalized}</span>`);
+            } else {
+                printToTerminal(cmd, `<span class="term-warn">Tono no reconocido. Opciones: cobalt, terracotta, olive, graphite</span>`);
+            }
+            return;
+        }
+
+        if (mainCmd === 'whoami') {
+            printToTerminal(cmd, `Sesión de visitante en el portafolio de Jose Luis Gutierrez Machado. Modo lectura activo.`);
+            return;
+        }
+
+        if (mainCmd === 'sudo') {
+            printToTerminal(cmd, `<span class="term-warn">sudo: permiso denegado. Acceso restringido al autor.</span>`);
+            return;
+        }
+
+        printToTerminal(cmd, `<span class="term-warn">Comando no reconocido: "${escapeHtml(cmd)}". Escribe <span class="term-cmd">help</span> para ver la lista.</span>`);
+    };
+
+    if (terminalForm) {
+        terminalForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            if (!terminalInput) return;
+            const cmd = terminalInput.value;
+            terminalInput.value = '';
+            executeCommand(cmd);
+        });
+    }
+
+    if (terminalInput) {
+        terminalInput.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    terminalInput.value = commandHistoryList[historyIndex] || '';
+                }
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (historyIndex < commandHistoryList.length - 1) {
+                    historyIndex++;
+                    terminalInput.value = commandHistoryList[historyIndex] || '';
+                } else {
+                    historyIndex = commandHistoryList.length;
+                    terminalInput.value = '';
+                }
+            }
+        });
+    }
+
+    document.querySelectorAll('.term-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            const cmd = chip.dataset.cmd;
+            if (cmd) {
+                if (terminalInput) terminalInput.value = cmd;
+                executeCommand(cmd);
+                if (terminalInput) terminalInput.value = '';
+            }
+        });
+    });
+
+    // --- Quick copy email in hero ---
+    const copyEmailBtn = document.getElementById('copy-email-hero');
+    if (copyEmailBtn) {
+        copyEmailBtn.addEventListener('click', async () => {
+            const email = copyEmailBtn.dataset.email || 'joseluismachado09@gmail.com';
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(email);
+                } else {
+                    const tempInput = document.createElement('input');
+                    tempInput.value = email;
+                    document.body.appendChild(tempInput);
+                    tempInput.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(tempInput);
+                }
+                showToast('¡Correo copiado al portapapeles! 📬');
+            } catch (err) {
+                showToast('Email: joseluismachado09@gmail.com');
+            }
+        });
+    }
+
     // Admin panel toggle (demo CRUD)
     if (adminToggle && adminPanel) {
         adminToggle.addEventListener('click', () => {
@@ -105,9 +344,36 @@ document.addEventListener('DOMContentLoaded', () => {
     const STORAGE_KEY = 'mi_portafolio_projects_v1';
 
     const sampleProjects = [
-        { id: Date.now() + 1, title: 'Landing que convierte', desc: 'Sistema visual responsive para presentar un servicio sin ruido y con una jerarquía clara.', categories: ['frontend','javascript'], tech: ['HTML','CSS','JavaScript'] },
-        { id: Date.now() + 2, title: 'Panel de tareas', desc: 'Herramienta de foco con persistencia local y estados diseñados para avanzar.', categories: ['frontend','javascript'], tech: ['JavaScript','LocalStorage'] },
-        { id: Date.now() + 3, title: 'Sistema de inventario', desc: 'Aplicación sencilla para registrar productos, controlar stock y organizar categorías con Python y SQL.', categories: ['backend','python'], tech: ['Python','Flask','SQL'] }
+        { 
+            id: 101, 
+            title: 'Landing que convierte', 
+            desc: 'Sistema visual responsive y minimalista para presentar productos digitales sin ruido, con jerarquía limpia y alto impacto.', 
+            categories: ['frontend', 'javascript'], 
+            tech: ['HTML5', 'CSS3 Moderno', 'JavaScript'],
+            icon: '💻',
+            demo: '#hero',
+            repo: 'https://github.com/joseluisgutierrezestudiante/POO-actividad-perro.git'
+        },
+        { 
+            id: 102, 
+            title: 'Panel de tareas & productividad', 
+            desc: 'Herramienta de organización con persistencia local en tiempo real, filtros dinámicos y estados de progreso fluidos.', 
+            categories: ['frontend', 'javascript'], 
+            tech: ['JavaScript ES6+', 'LocalStorage', 'CSS Grid'],
+            icon: '⚡',
+            demo: '#proyectos',
+            repo: 'https://github.com/joseluisgutierrezestudiante/POO-actividad-perro.git'
+        },
+        { 
+            id: 103, 
+            title: 'Sistema de inventario & Stock', 
+            desc: 'API REST y panel administrativo con control de existencias, alerta de stock bajo y operaciones CRUD en Python y SQLite.', 
+            categories: ['backend', 'python'], 
+            tech: ['Python 3', 'Flask', 'SQLite', 'REST API'],
+            icon: '📦',
+            demo: 'api-mascotas/dashboard.html',
+            repo: 'https://github.com/joseluisgutierrezestudiante/POO-actividad-perro.git'
+        }
     ];
 
     const loadProjects = () => {
@@ -119,13 +385,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const storedProjects = JSON.parse(raw);
             return storedProjects.map(project => {
-                if (project.title === 'API de recursos' || project.title === 'API en Python con SQL') {
-                    return Object.assign({}, project, {
-                        title: 'Sistema de inventario',
-                        desc: 'Aplicación sencilla para registrar productos, controlar stock y organizar categorías con Python y SQL.',
-                        tech: project.tech.includes('SQL') ? project.tech : [...project.tech, 'SQL']
-                    });
+                if (!project.icon) {
+                    if (project.title.toLowerCase().includes('inventario') || (project.categories && project.categories.includes('backend'))) {
+                        project.icon = '📦';
+                        project.demo = 'api-mascotas/dashboard.html';
+                    } else if (project.title.toLowerCase().includes('panel')) {
+                        project.icon = '⚡';
+                    } else {
+                        project.icon = '💻';
+                    }
                 }
+                if (!project.repo) project.repo = 'https://github.com/joseluisgutierrezestudiante';
                 return project;
             });
         } catch (e) {
@@ -142,20 +412,97 @@ document.addEventListener('DOMContentLoaded', () => {
     saveProjects(projects);
     let adminMode = false;
 
+    // Efecto de spotlight interactivo en las tarjetas
+    const initSpotlight = () => {
+        document.querySelectorAll('.project-card').forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                card.style.setProperty('--mouse-x', `${x}px`);
+                card.style.setProperty('--mouse-y', `${y}px`);
+            });
+        });
+    };
+
+    const getBlueprintHtml = (title, categories) => {
+        const t = (title || '').toLowerCase();
+        const cats = (categories || []).map(c => c.toLowerCase());
+        if (t.includes('inventario') || cats.includes('backend') || cats.includes('python')) {
+            return `
+                <div class="bp-window bp-db">
+                    <div class="bp-db-header"><span>sqlite://inventario.db</span><span class="bp-db-status">LIVE</span></div>
+                    <div class="bp-table">
+                        <div class="bp-tr bp-th"><span>COD</span><span>PRODUCTO</span><span>STOCK</span></div>
+                        <div class="bp-tr"><span>#101</span><span>Teclado Mecánico</span><span class="bp-tag ok">10 ud</span></div>
+                        <div class="bp-tr"><span>#102</span><span>Mouse Sensor</span><span class="bp-tag warn">3 ud</span></div>
+                    </div>
+                </div>
+            `;
+        }
+        if (t.includes('panel') || t.includes('tarea') || t.includes('productividad')) {
+            return `
+                <div class="bp-window bp-tasks">
+                    <div class="bp-task-bar"><span class="bp-dot active"></span><span>Tablero de Enfoque</span></div>
+                    <div class="bp-checklist">
+                        <div class="bp-item checked"><span class="check">✓</span><span>Persistencia con LocalStorage</span></div>
+                        <div class="bp-item checked"><span class="check">✓</span><span>Filtro dinámico de tareas</span></div>
+                        <div class="bp-item"><span class="check">○</span><span>Transiciones de estado fluidas</span></div>
+                    </div>
+                </div>
+            `;
+        }
+        return `
+            <div class="bp-window bp-layout">
+                <div class="bp-wire-nav"><span></span><span></span></div>
+                <div class="bp-wire-hero">
+                    <div class="bp-wire-h1"></div>
+                    <div class="bp-wire-btn"></div>
+                </div>
+                <div class="bp-wire-grid"><span></span><span></span><span></span></div>
+            </div>
+        `;
+    };
+
     const createCard = (proj) => {
         const el = document.createElement('article');
         el.className = 'project-card';
-        el.setAttribute('data-categories', proj.categories.join(','));
+        el.setAttribute('data-categories', (proj.categories || []).join(','));
         el.dataset.id = proj.id;
+
+        const mainCat = String((proj.categories && proj.categories[0]) || 'proyecto').toUpperCase();
+        const demoUrl = proj.demo || (proj.title.toLowerCase().includes('inventario') ? 'api-mascotas/dashboard.html' : '#');
+        const repoUrl = proj.repo || 'https://github.com/joseluisgutierrezestudiante';
+
         el.innerHTML = `
-            <div class="project-meta"><span>${String(proj.categories[0] || 'proyecto').toUpperCase()}</span><span>↗</span></div>
-            <h3>${escapeHtml(proj.title)}</h3>
-            <p>${escapeHtml(proj.desc)}</p>
-            <div class="tech-stack">${proj.tech.map(t=>escapeHtml(t)).join(' • ')}</div>
-            ${adminMode ? `<div class="card-actions">
-                <button class="edit-btn" data-id="${proj.id}">Editar</button>
-                <button class="delete-btn" data-id="${proj.id}">Eliminar</button>
-            </div>` : ''}
+            <div class="card-preview">
+                <div class="card-preview-bar">
+                    <div class="card-preview-dots">
+                        <span></span><span></span><span></span>
+                    </div>
+                    <span class="card-tag">${escapeHtml(mainCat)}</span>
+                </div>
+                <div class="card-schematic">${getBlueprintHtml(proj.title, proj.categories)}</div>
+            </div>
+            <div class="card-body">
+                <div class="project-meta">
+                    <span class="project-cat-badge">// ${escapeHtml(mainCat)}</span>
+                </div>
+                <h3>${escapeHtml(proj.title)}</h3>
+                <p>${escapeHtml(proj.desc)}</p>
+                <div class="tech-pills">
+                    ${(proj.tech || []).map(t => `<span class="tech-pill">${escapeHtml(t)}</span>`).join('')}
+                </div>
+                <div class="card-actions-bar">
+                    <a href="${demoUrl}" class="btn-card-primary" ${demoUrl.startsWith('http') || demoUrl.includes('.html') ? 'target="_blank" rel="noopener"' : ''}>Ver demo ↗</a>
+                    <a href="${repoUrl}" target="_blank" rel="noopener" class="btn-card-ghost">Código ↗</a>
+                    ${adminMode ? `
+                    <div class="admin-card-tools">
+                        <button class="edit-btn" data-id="${proj.id}">Editar</button>
+                        <button class="delete-btn" data-id="${proj.id}">Borrar</button>
+                    </div>` : ''}
+                </div>
+            </div>
         `;
         return el;
     };
@@ -164,13 +511,14 @@ document.addEventListener('DOMContentLoaded', () => {
         projectsGrid.innerHTML = '';
         const list = projects.filter(p => {
             if (filter === 'all') return true;
-            return p.categories.map(c=>c.toLowerCase()).includes(filter.toLowerCase());
+            return (p.categories || []).map(c=>c.toLowerCase()).includes(filter.toLowerCase());
         });
         if (list.length === 0) {
-            projectsGrid.innerHTML = '<p>No hay proyectos para esta categoría.</p>';
+            projectsGrid.innerHTML = '<p style="grid-column: 1/-1; padding: 30px; text-align: center; color: var(--muted);">No hay proyectos para esta categoría.</p>';
             return;
         }
         list.forEach(p => projectsGrid.appendChild(createCard(p)));
+        initSpotlight();
     };
 
     const addProject = (proj) => {
@@ -276,11 +624,57 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // Simular envío: aquí podrías integrar un servicio real (Formspree, Netlify Forms, email API)
-            contactErrors.style.color = 'green';
-            contactErrors.textContent = 'Mensaje enviado. Gracias — responderé pronto.';
+            // Simular envío
+            contactErrors.style.color = '#10b981';
+            contactErrors.textContent = 'Mensaje enviado correctamente. ¡Gracias!';
+            showToast('¡Mensaje enviado! 🚀 Responderé a la brevedad.');
             contactForm.reset();
-            setTimeout(()=>{ contactErrors.textContent=''; contactErrors.style.color = 'var(--accent)'; }, 4000);
+            setTimeout(() => {
+                contactErrors.textContent = '';
+            }, 5000);
         });
     }
+
+    // --- Mobile menu toggle ---
+    const mobileToggle = document.getElementById('mobile-toggle');
+    const navLinksList = document.querySelector('.nav-links');
+    if (mobileToggle && navLinksList) {
+        mobileToggle.addEventListener('click', () => {
+            const isOpen = navLinksList.classList.toggle('open');
+            mobileToggle.classList.toggle('open', isOpen);
+            mobileToggle.setAttribute('aria-expanded', String(isOpen));
+        });
+
+        // Cerrar menú al hacer clic en cualquier enlace
+        navLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                navLinksList.classList.remove('open');
+                mobileToggle.classList.remove('open');
+                mobileToggle.setAttribute('aria-expanded', 'false');
+            });
+        });
+    }
+
+    // --- Copy channel text buttons (email en sección contacto) ---
+    document.querySelectorAll('.btn-copy-channel').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const text = btn.dataset.copy;
+            if (!text) return;
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(text);
+                } else {
+                    const temp = document.createElement('input');
+                    temp.value = text;
+                    document.body.appendChild(temp);
+                    temp.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(temp);
+                }
+                showToast(`¡Copiado al portapapeles: ${text}! 📋`);
+            } catch (e) {
+                showToast(text);
+            }
+        });
+    });
 });
